@@ -1,0 +1,7 @@
+/.env
+/.venv
+/geckodriver.exe
+/todaynews_2024-04-23.csv
+/todaynews_2024-04-24.csv
+/todaynews_2024-04-25.csv
+/__pycache__
