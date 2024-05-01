@@ -2,15 +2,23 @@ import pandas as pd
 from datetime import date
 
 today = date.today()
-news_file = pd.read_csv(f'todaynews_2024-04-24.csv')
+
+try:
+    news_file = pd.read_csv(f'todaynews_{today}.csv') 
+except FileNotFoundError:
+    news_file = pd.DataFrame()
 
 # Sort news by category
 def sort_news(category: str) -> str:
     filtered_news = news_file[news_file['Category'] == category]
     response = []
-    for _, row in filtered_news.iterrows():
-        news_item = f"[{row['Category'].upper()}] \n[{row['Headline']}]({row['Link']}) \n({row['Date']})"
-        response.append(news_item)
+    if filtered_news.empty:
+        response = [f'No news in {category} today']
+    else:
+        for _, row in filtered_news.iterrows():
+            news_item = f"[{row['Category'].upper()}] \n[{row['Headline']}]({row['Link']}) \n({row['Date']})"
+            response.append(news_item)
+
     return response
 
 def get_response(user_input: str) -> str:
@@ -22,8 +30,14 @@ def get_response(user_input: str) -> str:
     elif 'hello' in lowered:
         return ['Hello there']
     
-    elif 'get news' in lowered:
-        return ['Collecting news...']
+    elif 'about' in lowered:
+        comm_list = """
+- **!update**: To update today news
+- **!news**: To call main menu for news
+- **!1 (available up to 10)**: Shortcut to get news
+- **!all**: To get all news
+    """
+        return ['I am a bot that provide you today news from Borneo Bulletin. \nAvailable command: \n', comm_list]
 
     elif lowered in [str(i) for i in range(1, 11)]:
         category_list = {
@@ -39,6 +53,8 @@ def get_response(user_input: str) -> str:
             '10': 'opinion'
         }
         response = sort_news(category_list[lowered])
+        if news_file.empty:
+            response ['News Not Updated']
         return response
 
     elif 'all' in lowered:
@@ -47,8 +63,6 @@ def get_response(user_input: str) -> str:
             news_item = f"[{row['Category'].upper()}] \n[{row['Headline']}]({row['Link']}) \n({row['Date']})"
             response.append(news_item)
         return response
-        
-    
     
     elif 'read article' in lowered:
         return ['article description - TBA']

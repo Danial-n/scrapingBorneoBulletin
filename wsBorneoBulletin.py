@@ -7,54 +7,50 @@ from selenium.webdriver.firefox.options import Options
 from datetime import date
 import pandas as pd
 
-today_news = []
+today_news_list = []
 news_headline_list = []
 news_category_list = []
 news_date_list = []
 news_link_list = []
 news_description_list = []
 
-site_nav_list = [
+SITE_NAV_LIST = [
             {'section' : 'national'}, 
-            {'section' : 'southeast', }, 
-            {'section' : 'world', },
-            {'section' : 'business', },
-            {'section' : 'tech', },
-            {'section' : 'lifstyle', },
-            {'section' : 'entertainment', },
-            {'section' : 'sports', },
-            {'section' : 'features', },
-            {'section' : 'opinion', } 
+            {'section' : 'southeast'}, 
+            {'section' : 'world'},
+            {'section' : 'business'},
+            {'section' : 'tech'},
+            {'section' : 'lifstyle'},
+            {'section' : 'entertainment'},
+            {'section' : 'sports'},
+            {'section' : 'features'},
+            {'section' : 'opinion'} 
             ]
 
-service = Service(executable_path="geckodriver.exe")
+page = 1
+today = date.today()
+gecko = 'geckodriver.exe'
+STARTING_PAGE = "https://borneobulletin.com.bn/"
+
+service = Service(executable_path=gecko)
 firefox_options = Options()
-firefox_options.add_argument("-headless") 
+# firefox_options.add_argument("-headless") 
 driver = webdriver.Firefox(service=service, options=firefox_options)
 
-driver.get("https://borneobulletin.com.bn/")
+def save_data(category, headline, date, link):
+    news_category_list.append(category)
+    news_headline_list.append(headline)
+    news_date_list.append(date)
+    news_link_list.append(link)
 
-today = date.today()
-print('\nToday is,', today)
-
-page = 1
-
-# CLOSE POPUP
-WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((By.CLASS_NAME, 'tdm-popup-modal'))
-)
-closeAds = driver.find_element(By.CLASS_NAME, "tdm-pmh-close")
-closeAds.click()
-
-for site_nav in site_nav_list:
+def close_popup():
     WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CLASS_NAME, 'tdb-menu-item-text'))
+        EC.presence_of_element_located((By.CLASS_NAME, 'tdm-popup-modal'))
     )
-    print(f"\n----- {site_nav['section']} News ------------------")
-    news_category = site_nav['section']
-    
-    driver.get(f'https://borneobulletin.com.bn/category/{site_nav['section']}/')
+    closeAds = driver.find_element(By.CLASS_NAME, "tdm-pmh-close")
+    closeAds.click()
 
+def block55_scraper(news_category):
     news_col = driver.find_element(By.ID, "tdi_55")
     news_box = news_col.find_elements(By.CLASS_NAME, "td-module-meta-info")
 
@@ -72,11 +68,9 @@ for site_nav in site_nav_list:
             if news_category == 'lifstyle':
                 news_category = 'lifestyle'
                 
-            news_category_list.append(news_category)
-            news_headline_list.append(news_headline)
-            news_date_list.append(news_date)
-            news_link_list.append(news_link)
-    
+            save_data(news_category, news_headline, news_date, news_link)
+
+def block92_scraper(news_category, page=1):
     print("Collecting news from ID 92 block")
     while True:    
         print("Collecting news from PAGE", page)
@@ -99,16 +93,12 @@ for site_nav in site_nav_list:
             if news_date[:10] == str(today):
                 news_link = news_title_2.find_element(By.TAG_NAME, "a").get_attribute("href")
 
-                news_category_list.append(news_category)
-                news_headline_list.append(news_headline)
-                news_date_list.append(news_date)
-                news_link_list.append(news_link)
+                save_data(news_category, news_headline, news_date, news_link)
                 thereIs_news = True
         
         if not thereIs_news:
             print("no more news here")
-            page = 1 
-            thereIs_news = False
+            page = 1 #reset num
             break
 
         print("going to next page...")
@@ -116,40 +106,69 @@ for site_nav in site_nav_list:
         nextPage = driver.find_element(By.CSS_SELECTOR, '[aria-label="next-page"]')
         nextPage.click()
 
+def page_scraper():
+    for site_nav in SITE_NAV_LIST:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, 'tdb-menu-item-text'))
+        )
+        print(f"\n----- {site_nav['section']} News ------------------")
+        news_category = site_nav['section']
+        driver.get(f'https://borneobulletin.com.bn/category/{site_nav['section']}/')
+
+        block55_scraper(news_category)
+        block92_scraper(news_category)
+
     print(f"today {site_nav['section']} news retrieved")
 
-#TODO if empty string try again
-print('\nReading news article...')
-for newsLink in news_link_list:
-    driver.delete_all_cookies()
-    driver.get(f"{newsLink}")
+def get_description():
+    #TODO if empty string try again
+    print('\nReading news article...')
+    for newsLink in news_link_list:
+        driver.delete_all_cookies()
+        driver.get(f"{newsLink}")
 
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CLASS_NAME, 'tdi_69'))
-    )
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, 'tdi_69'))
+        )
 
-    paragraphs_container = driver.find_element(By.CLASS_NAME, 'tdi_69')
-    paragraphs_container = paragraphs_container.find_element(By.CLASS_NAME, 'tdb-block-inner')
-    paragraph =  paragraphs_container.find_elements(By.TAG_NAME, 'p')
-    news_description = ' '.join(p.text for p in paragraph)
+        paragraphs_container = driver.find_element(By.CLASS_NAME, 'tdi_69')
+        paragraphs_container = paragraphs_container.find_element(By.CLASS_NAME, 'tdb-block-inner')
+        paragraph =  paragraphs_container.find_elements(By.TAG_NAME, 'p')
+        news_description = ' '.join(p.text for p in paragraph)
 
-    news_description_list.append([news_description])  
+        news_description_list.append([news_description])
 
-print("\nALL today news retrieved!")
-driver.quit()
+def news_compiler():
+    print('Compiling news...')
+    count = 0
+    for news in news_headline_list:
+        today_news_list.append([
+            news_category_list[count], 
+            news_headline_list[count], 
+            news_date_list[count], 
+            news_link_list[count], 
+            news_description_list[count]
+            ])
+        count+=1
 
-print('Compiling news...')
-count = 0
-for news in news_headline_list:
-    today_news.append([
-        news_category_list[count], 
-        news_headline_list[count], 
-        news_date_list[count], 
-        news_link_list[count], 
-        news_description_list[count]
-        ])
-    count+=1
+    df = pd.DataFrame(today_news_list, columns=['Category', 'Headline', 'Date', 'Link', 'Description'])
+    df.to_csv(f'todaynews_{today}.csv', encoding='utf-8-sig')
+    print("today news compiled\n")
 
-df = pd.DataFrame(today_news, columns=['Category', 'Headline', 'Date', 'Link', 'Description'])
-df.to_csv(f'todaynews_{today}.csv', encoding='utf-8-sig')
-print("today news compiled\n")
+def scraper():
+    driver.get(STARTING_PAGE) 
+    print('\nToday is,', today)
+
+    close_popup()
+    page_scraper()
+    get_description()
+    print("\nALL today news retrieved!")
+
+    driver.quit()
+
+    news_compiler()
+
+
+
+if __name__ == '__main__':
+    scraper()
