@@ -3,13 +3,15 @@ from datetime import date
 
 today = date.today()
 
-try:
-    news_file = pd.read_csv(f'todaynews_{today}.csv') 
-except FileNotFoundError:
-    news_file = pd.DataFrame()
+def get_file():
+    try:
+        return pd.read_csv(f'todaynews_{today}.csv') 
+    except FileNotFoundError:
+        return pd.DataFrame()
 
 # Sort news by category
 def sort_news(category: str) -> str:
+    news_file = get_file()
     filtered_news = news_file[news_file['Category'] == category]
     response = []
     if filtered_news.empty:
@@ -53,6 +55,7 @@ def get_response(user_input: str) -> str:
             '10': 'opinion'
         }
         response = sort_news(category_list[lowered])
+        news_file = get_file()
         if news_file.empty:
             response ['News Not Updated']
         return response

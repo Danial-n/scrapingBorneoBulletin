@@ -34,7 +34,7 @@ STARTING_PAGE = "https://borneobulletin.com.bn/"
 
 service = Service(executable_path=gecko)
 firefox_options = Options()
-# firefox_options.add_argument("-headless") 
+firefox_options.add_argument("-headless") 
 driver = webdriver.Firefox(service=service, options=firefox_options)
 
 def save_data(category, headline, date, link):

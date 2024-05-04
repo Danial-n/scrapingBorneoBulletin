@@ -7,8 +7,10 @@ from discord.ext import commands
 from discord.ui import Button, View
 from responses import get_response
 from wsBorneoBulletin import scraper
-from responses import sort_news, news_file
+from responses import sort_news
+from datetime import date
 
+today = date.today()
 load_dotenv()
 TOKEN: Final[str] = os.getenv('DISCORD_TOKEN')
 
@@ -23,7 +25,9 @@ class NewsButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction): 
         news_items = sort_news(self.category)
-        if [f'No {self.category} news today'] != news_items:
+        if not os.path.exists(f'todaynews_{today}.csv'):
+            await interaction.response.send_message(f'News not updated. Please use !update')
+        elif [f'No news in {self.category} today'] != news_items:
             await interaction.response.send_message(f"Today news in {self.category}:", ephemeral=True)
             for news_item in news_items:
                 await interaction.followup.send(news_item, ephemeral=True)
@@ -62,10 +66,12 @@ async def send_message(message: Message, user_message: str) -> None:
                 await message.author.send(get_news)
                 scraper()
                 await message.author.send('News updated')
+                await message.author.send("Choose a category:", view=NewsView())
             else:
                 await message.channel.send(get_news)
                 scraper()
                 await message.channel.send('News updated')
+                await message.channel.send("Choose a category:", view=NewsView())
 
         else:
             try:
